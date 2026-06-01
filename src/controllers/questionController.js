@@ -13,6 +13,13 @@ if (!fs.existsSync(UPLOADS_DIR)) {
 
 exports.extractData = async (req, res) => {
   try {
+    console.log("Extract request received:", {
+      hasFile: Boolean(req.file),
+      fileName: req.file?.originalname,
+      mimeType: req.file?.mimetype,
+      size: req.file?.size
+    });
+
     if (!req.file) {
       return res.status(400).json({ error: 'هیچ عکسی ارسال نشده است.' });
     }
@@ -22,17 +29,21 @@ exports.extractData = async (req, res) => {
 
   } catch (error) {
     console.error("Gemini Extraction Error:", error);
-    res.status(500).json({ error: 'خطا در ارتباط با هوش مصنوعی.' });
+    res.status(500).json({
+      error: 'خطا در ارتباط با هوش مصنوعی.',
+      detail: process.env.NODE_ENV === 'production' ? undefined : error.message
+    });
   }
 };
 
 exports.saveQuestion = (req, res) => {
   try {
-    const { questionText, options, correctOption, questionImage } = req.body;
+    const { questionText, options, correctOption, hasQuestionImage, questionImage } = req.body;
 
     let finalImagePath = null;
+    const shouldSaveImage = Boolean(hasQuestionImage) && Boolean(questionImage);
 
-    if (questionImage) {
+    if (shouldSaveImage) {
       const base64Data = questionImage.replace(/^data:image\/\w+;base64,/, "");
       const buffer = Buffer.from(base64Data, 'base64');
       
@@ -48,16 +59,23 @@ exports.saveQuestion = (req, res) => {
         questionText,
         options,
         correctOption,
+        hasQuestionImage: Boolean(hasQuestionImage),
         finalImagePath
     });
 
     const stmt = db.prepare(`
-      INSERT INTO questions (questionText, options, correctOption, imageUrl)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO questions (questionText, options, correctOption, hasQuestionImage, imageUrl)
+      VALUES (?, ?, ?, ?, ?)
     `);
     
     // اجرای کوئری و دریافت ID
-    const info = stmt.run(questionText, JSON.stringify(options), correctOption, finalImagePath);
+    const info = stmt.run(
+      questionText,
+      JSON.stringify(options),
+      correctOption,
+      Boolean(hasQuestionImage) ? 1 : 0,
+      finalImagePath
+    );
     
     console.log("Database ID:", info.lastInsertRowid);
 
