@@ -3,10 +3,13 @@ const router = express.Router();
 const upload = require('../middlewares/upload');
 const questionController = require('../controllers/questionController');
 
-// روت برای گرفتن عکس خام و ارسال به جمینای
-router.post('/extract', upload.single('image'), questionController.extractData);
+const extractUpload = upload.fields([
+  { name: 'files', maxCount: 30 },
+  { name: 'image', maxCount: 1 },
+]);
 
-// روت برای ذخیره نهایی در دیتابیس
+router.post('/extract', extractUpload, questionController.extractData);
 router.post('/save', questionController.saveQuestion);
+router.post('/save-batch', questionController.saveQuestionsBatch);
 
 module.exports = router;
