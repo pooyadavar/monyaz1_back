@@ -22,6 +22,30 @@ const normalizeCrop = (rawCrop) => {
   };
 };
 
+const parseCorrectOption = (raw) => {
+  if (raw === null || raw === undefined || raw === "") {
+    return null;
+  }
+
+  const n = Number(raw);
+
+  if (!Number.isFinite(n)) {
+    return null;
+  }
+
+  const rounded = Math.round(n);
+
+  if (rounded >= 1 && rounded <= 4) {
+    return rounded;
+  }
+
+  if (rounded >= 0 && rounded <= 3) {
+    return rounded + 1;
+  }
+
+  return null;
+};
+
 const normalizeOption = (option, index) => {
   if (typeof option === "string") {
     return { type: "text", text: option };
@@ -46,7 +70,9 @@ const normalizeOption = (option, index) => {
   };
 };
 
-exports.normalizeQuestion = (raw, pageIndex = 0) => {
+exports.parseCorrectOption = parseCorrectOption;
+
+exports.normalizeQuestion = (raw, fallbackPageIndex = 0) => {
   const hasQuestionImage = Boolean(raw.hasQuestionImage);
   const optionsSource = Array.isArray(raw.options) ? raw.options : [];
 
@@ -54,10 +80,15 @@ exports.normalizeQuestion = (raw, pageIndex = 0) => {
     normalizeOption(optionsSource[index], index),
   );
 
+  let pageIndex = fallbackPageIndex;
+  if (Number.isFinite(Number(raw.pageIndex)) && Number(raw.pageIndex) >= 0) {
+    pageIndex = Number(raw.pageIndex);
+  }
+
   return {
     questionText: raw.questionText || "",
     options,
-    correctOption: Math.min(4, Math.max(1, Number(raw.correctOption) || 1)),
+    correctOption: parseCorrectOption(raw.correctOption),
     hasQuestionImage,
     questionImageCrop: hasQuestionImage
       ? normalizeCrop(raw.questionImageCrop || raw.imageCrop)
@@ -66,16 +97,16 @@ exports.normalizeQuestion = (raw, pageIndex = 0) => {
   };
 };
 
-exports.normalizeExtractPayload = (data, pageIndex = 0) => {
+exports.normalizeExtractPayload = (data, fallbackPageIndex = 0) => {
   if (Array.isArray(data.questions)) {
     return data.questions.map((question) =>
-      exports.normalizeQuestion(question, pageIndex),
+      exports.normalizeQuestion(question, fallbackPageIndex),
     );
   }
 
   if (Array.isArray(data)) {
-    return data.map((question) => exports.normalizeQuestion(question, pageIndex));
+    return data.map((question) => exports.normalizeQuestion(question, fallbackPageIndex));
   }
 
-  return [exports.normalizeQuestion(data, pageIndex)];
+  return [exports.normalizeQuestion(data, fallbackPageIndex)];
 };
