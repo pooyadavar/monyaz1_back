@@ -59,7 +59,7 @@ Other rules:
 const callGemini = async (parts, logLabel) => {
   const { HttpsProxyAgent } = await import("https-proxy-agent");
   const apiKey = process.env.GEMINI_API_KEY;
-  const proxyAgent = new HttpsProxyAgent("http://192.168.1.4:10807");
+  const proxyAgent = new HttpsProxyAgent("http://192.168.31.174:10807");
 
   const model = "gemini-2.5-flash";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
