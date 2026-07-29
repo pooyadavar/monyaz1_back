@@ -1,6 +1,13 @@
 const clampPercent = (value) => Math.max(0, Math.min(100, Number(value)));
 
+const isDataUrl = (value) =>
+  typeof value === "string" && value.startsWith("data:image");
+
 const normalizeCrop = (rawCrop) => {
+  if (isDataUrl(rawCrop)) {
+    return rawCrop;
+  }
+
   if (
     !rawCrop ||
     !Number.isFinite(Number(rawCrop.x)) ||

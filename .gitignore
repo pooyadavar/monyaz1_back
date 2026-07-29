@@ -1,0 +1,11 @@
+node_modules/
+uploads/
+venv/
+.env
+.DS_Store
+*.sqlite
+*.sqlite-*
+*.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

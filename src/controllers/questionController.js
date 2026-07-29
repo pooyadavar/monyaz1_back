@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const db = require("../config/db");
-const geminiService = require("../services/geminiService");
 
 const UPLOADS_DIR = path.join(__dirname, "../../uploads");
 
@@ -67,6 +66,16 @@ const persistQuestion = ({
 
 exports.extractData = async (req, res) => {
   try {
+    if (process.env.ENABLE_LEGACY_GEMINI_EXTRACT !== "1") {
+      return res.status(410).json({
+        success: false,
+        errorCode: "LEGACY_EXTRACT_DISABLED",
+        error:
+          "مسیر قدیمی Gemini غیرفعال است. استخراج جدید باید از moniaz-ai-services انجام شود.",
+        nextEndpoint: "/api/extractions",
+      });
+    }
+
     const files = getUploadedFiles(req);
 
     console.log("Extract request received:", {
@@ -84,11 +93,16 @@ exports.extractData = async (req, res) => {
       name: file.originalname,
     }));
 
-    const questions = await geminiService.extractFromPages(pages);
+    const geminiService = require("../services/geminiService");
+    const extraction = await geminiService.extractFromPages(pages);
+    const questions = extraction.questions || extraction;
 
     res.json({
       success: true,
-      data: { questions },
+      data: {
+        questions,
+        answerKey: extraction.answerKey || { source: "gemini" },
+      },
     });
   } catch (error) {
     console.error("Gemini Extraction Error:", error);
@@ -101,6 +115,15 @@ exports.extractData = async (req, res) => {
 
 exports.saveQuestion = (req, res) => {
   try {
+    if (process.env.ENABLE_LEGACY_QUESTION_SAVE !== "1") {
+      return res.status(410).json({
+        success: false,
+        errorCode: "LEGACY_SAVE_DISABLED",
+        error:
+          "مسیر ذخیره قدیمی غیرفعال است. ذخیره جدید از extraction sessions و autosave انجام می‌شود.",
+      });
+    }
+
     const {
       questionText,
       options,
@@ -144,6 +167,15 @@ exports.saveQuestion = (req, res) => {
 
 exports.saveQuestionsBatch = (req, res) => {
   try {
+    if (process.env.ENABLE_LEGACY_QUESTION_SAVE !== "1") {
+      return res.status(410).json({
+        success: false,
+        errorCode: "LEGACY_SAVE_DISABLED",
+        error:
+          "مسیر ذخیره قدیمی غیرفعال است. ذخیره جدید از extraction sessions و autosave انجام می‌شود.",
+      });
+    }
+
     const { questions } = req.body;
 
     if (!Array.isArray(questions) || questions.length === 0) {
